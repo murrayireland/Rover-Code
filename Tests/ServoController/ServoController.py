@@ -35,8 +35,6 @@ while joystick != 0 and StopLoop == False:
 
     # Scale controls for duty cycle
     DC = 2.5*axes['L vertical'] + 7.5
-
-    print DC
     
     # Write controls to servo
     pwm.ChangeDutyCycle(DC)

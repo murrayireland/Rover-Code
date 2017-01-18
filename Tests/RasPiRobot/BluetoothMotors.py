@@ -16,7 +16,13 @@ import numpy as np
 joystick = BluetoothController.Init()
 
 # Initialise RasPiRobot board
-rr = RRB3(7.4, 6)
+Rover = 'Lynxmotion'
+MotorVoltages = {'Lynxmotion': 7.4, 'BogieRunt': 6}
+rr = RRB3(7.4, MotorVoltages[Rover])
+
+# Turn on LEDs
+rr.set_led1(1)
+rr.set_led2(1)
 
 # Print variable
 PrintStuff = False
@@ -37,18 +43,29 @@ while joystick != 0 and StopLoop == False:
         print axes
 
     # Get motor speeds and directions
-    Coll = axes['L vertical']
-    Diff = axes['L horizontal']
-    Speed = [Coll-1*Diff, Coll+1*Diff]
+    Coll = -1*axes['L vertical']
+    Diff = 1*axes['L horizontal']
+    Speed = [0.5*Coll+0.5*Diff, 0.5*Coll-0.5*Diff]
+    # if Speed[0] != 0 or Speed[1] != 0:
+    #     print Diff
+    
     Dir = [0, 0]
     for i in range(0, 2):
         if Speed[i] > 1:
             Speed[i] = 1
         elif Speed[i] < -1:
             Speed[i] = -1
-        if Speed[i] >= 0:
+        if Speed[i] < 0:
             Dir[i] = 1
     Speed = np.absolute(Speed)
+
+    # Override with turbo
+    if buttons['R2'] == True:
+        Speed = [1, 1]
+        Dir = [0, 0]
+    elif buttons['L2'] == True:
+        Speed = [1, 1]
+        Dir = [1, 1]    
     
     #print( Speed )
     #print( Dir )
@@ -61,4 +78,9 @@ while joystick != 0 and StopLoop == False:
     if buttons['X'] == True:
         StopLoop = True
 
+# Turn on LEDs
+rr.set_led1(0)
+rr.set_led2(0)
+
+# Clean up
 rr.cleanup()

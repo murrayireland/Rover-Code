@@ -17,7 +17,7 @@ joystick = BluetoothController.Init()
 
 # Initialise RasPiRobot board
 Rover = 'Lynxmotion'
-MotorVoltages = {'Lynxmotion': 7.4, 'BogieRunt': 6}
+MotorVoltages = {'Lynxmotion': 7.4, 'BogieRunt': 4.5}
 rr = RRB3(7.4, MotorVoltages[Rover])
 
 # Turn on LEDs

@@ -19,7 +19,7 @@ while Time - TimeInit < 5:
     Time = time.time()
 
     # Set motors (Lsp,Ldir,Rsp,Rdir)
-    rr.set_motors(1,0,1,0)
+    rr.set_motors(0.2,0,0.2,0)
 
 # LEDs off
 rr.set_led1(0)

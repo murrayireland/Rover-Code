@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 
 """
-BluetoothMotors.py: Use bluetooth controller to control rover motors.
+Lynxmotion.py: Manual control module for Lynxmotion 4WD3 rover.
+Bluetooth gamepad is used for input and RasPiRobot board v3
+provides interface with motors.
 """
 
 __author__  = "Murray Ireland"
 __email__   = "murray@murrayire.land"
-__date__    = "16/01/2017"
+__date__    = "20/01/17"
 
-import BluetoothController, time
+import btcontrol
+import time
 from rrb3 import *
 import numpy as np
 
 # Initialise bluetooth controller
-joystick = BluetoothController.Init()
+joystick = btcontrol.Init()
 
 # Initialise RasPiRobot board
-Rover = 'BogieRunt'
-MotorVoltages = {'Lynxmotion': 7.4, 'BogieRunt': 6}
-rr = RRB3(7.4, MotorVoltages[Rover])
+rr = RRB3(7.4, 7.2)
 
 # Turn on LEDs
 rr.set_led1(1)
@@ -32,7 +33,7 @@ StopLoop = False
 
 # Loop
 while joystick != 0 and StopLoop == False:
-    buttons, axes = BluetoothController.GetControls( joystick )
+    buttons, axes = btcontrol.GetControls( joystick )
 
     # Print buttons if active
     if PrintStuff == True and any(b > 0 for b in buttons.itervalues()):

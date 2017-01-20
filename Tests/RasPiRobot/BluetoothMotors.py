@@ -16,8 +16,13 @@ import numpy as np
 joystick = BluetoothController.Init()
 
 # Initialise RasPiRobot board
+<<<<<<< HEAD
 Rover = 'BogieRunt'
 MotorVoltages = {'Lynxmotion': 7.4, 'BogieRunt': 6}
+=======
+Rover = 'Lynxmotion'
+MotorVoltages = {'Lynxmotion': 7.4, 'BogieRunt': 4.5}
+>>>>>>> 8021e9f0f438920741ff3c7a421f04bcea7b9f3c
 rr = RRB3(7.4, MotorVoltages[Rover])
 
 # Turn on LEDs

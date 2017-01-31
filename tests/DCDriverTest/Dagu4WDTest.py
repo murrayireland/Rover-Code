@@ -18,13 +18,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Set direction channels
-Motors_Dir = {'Front-left': 17, 'Back-left': 12,
-              'Back-right': 22, 'Front-right': 23}
+Motors_Dir = {'Front-left': 17, 'Front-right': 18}
 
 # Set PWM channels
-Motors_PWM = {'Front-left': 0, 'Back-left': 1,
-              'Back-right': 2, 'Front-right': 3}
-Servos_PWM = {'Grabber': 4, 'Arm': 5}
+Motors_PWM = {'Front-left': 0, 'Front-right': 1}
 
 # Set up direction pins
 for pin in Motors_Dir:
@@ -32,20 +29,20 @@ for pin in Motors_Dir:
     GPIO.output(Motors_Dir[pin], GPIO.LOW)
 
 # Set up PWM channels
-PWM_Freq = 500  # PWM frequency (Hz)
+PWM_Freq = 50  # PWM frequency (Hz)
 DC_min = 0      # Min duty cycle (%)
 DC_max = 100    # Max duty cycle (%)
 PWM = PD.PCA9685()
 PWM.set_pwm_freq(PWM_Freq)
 
 # Set PWM from duty cycle
-def set_pwm_dc(channel, on, off):
+def set_pwm_dc(channel, on_dc, off_dc):
     # Scale on/off parameters
-    on_dc = (on/4096)*100
-    off_dc = (off/4096)*100
+    on_bits = int(round((on_dc/100.0)*4095))
+    off_bits = int(round((off_dc/100.0)*4095))
 
     # Set PWM for channel
-    PWM.set_pwm(channel, on_dc, off_dc)
+    PWM.set_pwm(channel, on_bits, off_bits)
 
 # Test each motor in turn
 for motor in Motors_PWM:
@@ -57,13 +54,6 @@ for motor in Motors_PWM:
     set_pwm_dc(Motors_PWM[motor], 0, DC_max)
     time.sleep(1)
     set_pwm_dc(Motors_PWM[motor], 0, DC_min)
-
-# Test each arm servo
-for servo in Servos_PWM:
-    set_pwm_dc(Servos_PWM[servo], 0, DC_max)
-    time.sleep(1)
-    set_pwm_dc(Servos_PWM[servo], 0, DC_min)
-    time.sleep(1)
 
 # Clean up GPIO
 GPIO.cleanup()

@@ -14,12 +14,9 @@ import time
 import Adafruit_PCA9685
 import RPi.GPIO as GPIO
 
-# Set max and min pulse lengths (out of 4096)
-pulse_min = 2000
-pulse_max = 4096
-
-# Set channel
-channel = 15
+# Set max and min duty cycles
+DC_min = 1
+DC_max = 100
 
 # Set GPIO mode
 GPIO.setmode(GPIO.BCM)
@@ -28,26 +25,39 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Pin for direction control
-dir_pin = 22
+dir_pin = 17
 
 # Set pins as outputs
 GPIO.setup(dir_pin, GPIO.OUT)
 
-# Set direction 
+# Set direction
 GPIO.output(dir_pin, GPIO.HIGH)
 
 # Initialise PWM driver
 pwm = Adafruit_PCA9685.PCA9685()
 
-# Set PWM frequency to 20 Hz
-pwm.set_pwm_freq(500)
+# Set PWM frequency (Hz)
+pwm.set_pwm_freq(50)
 
-while True:
-    # Move servo between extremes
-    pwm.set_pwm(channel, 0, pulse_min)
+# Set PWM from duty cycle
+def set_pwm_dc(channel, on_dc, off_dc):
+    # Scale on/off parameters
+    on_bits = int(round((on_dc/100.0)*4095))
+    off_bits = int(round((off_dc/100.0)*4095))
+
+    # Set PWM for channel
+    pwm.set_pwm(channel, on_bits, off_bits)
+
+count = 0
+while count < 3:
+    set_pwm_dc(0, 0, DC_min)
     time.sleep(1)
-    pwm.set_pwm(channel, 0, pulse_max)
+    set_pwm_dc(0, 0, DC_max)
     time.sleep(1)
+    count = count + 1
+
+pwm.set_pwm(0, 0, 0)
+time.sleep(1)
 
 # Clean up GPIO
 GPIO.cleanup()

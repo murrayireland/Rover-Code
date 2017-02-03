@@ -21,7 +21,7 @@ GPIO.setwarnings(False)
 Motors_Dir = {'Back-left': 18, 'Front-left': 17, 'Back-right': 23, 'Front-right': 22}
 
 # Set PWM channels
-Motors_PWM = {'Back-left': 14, 'Front-left': 15, 'Back-right': 12, 'Front-right': 13}
+Motors_PWM = {'Back-left': 0, 'Front-left': 1, 'Back-right': 14, 'Front-right': 15}
 
 # Set up direction pins
 for pin in Motors_Dir:
@@ -47,8 +47,9 @@ def set_pwm_dc(channel, on_dc, off_dc):
 
 # Test each motor in turn
 for motor in Motors_PWM:
+    print "Motor: {}".format(motor)
     GPIO.output(Motors_Dir[motor], GPIO.HIGH)
-    for speed in range(0, 50, 1):
+    for speed in range(25, 75, 2):
         set_pwm_dc(Motors_PWM[motor], 0, speed)
         time.sleep(0.1)
     GPIO.output(Motors_Dir[motor], GPIO.LOW)

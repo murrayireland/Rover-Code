@@ -25,7 +25,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Pin for direction control
-dir_pin = 17
+dir_pin = 18
+
+# Pin for PWM control
+pwm_pin = 14
 
 # Set pins as outputs
 GPIO.setup(dir_pin, GPIO.OUT)
@@ -48,16 +51,10 @@ def set_pwm_dc(channel, on_dc, off_dc):
     # Set PWM for channel
     pwm.set_pwm(channel, on_bits, off_bits)
 
-count = 0
-while count < 3:
-    set_pwm_dc(0, 0, DC_min)
+for speed in range(0, 100, 10):
+    print "Speed: {}".format(speed)
+    set_pwm_dc(pwm_pin, 0, speed)
     time.sleep(1)
-    set_pwm_dc(0, 0, DC_max)
-    time.sleep(1)
-    count = count + 1
-
-pwm.set_pwm(0, 0, 0)
-time.sleep(1)
 
 # Clean up GPIO
 GPIO.cleanup()

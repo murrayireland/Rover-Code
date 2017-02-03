@@ -18,10 +18,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Set direction channels
-Motors_Dir = {'Front-left': 17, 'Front-right': 18}
+Motors_Dir = {'Back-left': 18, 'Front-left': 17, 'Back-right': 23, 'Front-right': 22}
 
 # Set PWM channels
-Motors_PWM = {'Front-left': 0, 'Front-right': 1}
+Motors_PWM = {'Back-left': 14, 'Front-left': 15, 'Back-right': 12, 'Front-right': 13}
 
 # Set up direction pins
 for pin in Motors_Dir:
@@ -32,6 +32,7 @@ for pin in Motors_Dir:
 PWM_Freq = 50  # PWM frequency (Hz)
 DC_min = 0      # Min duty cycle (%)
 DC_max = 100    # Max duty cycle (%)
+DC_mid = (DC_max + DC_min)/2
 PWM = PD.PCA9685()
 PWM.set_pwm_freq(PWM_Freq)
 
@@ -46,14 +47,11 @@ def set_pwm_dc(channel, on_dc, off_dc):
 
 # Test each motor in turn
 for motor in Motors_PWM:
-    set_pwm_dc(Motors_PWM[motor], 0, DC_max)
-    time.sleep(1)
-    set_pwm_dc(Motors_PWM[motor], 0, DC_min)
-    time.sleep(1)
     GPIO.output(Motors_Dir[motor], GPIO.HIGH)
-    set_pwm_dc(Motors_PWM[motor], 0, DC_max)
-    time.sleep(1)
-    set_pwm_dc(Motors_PWM[motor], 0, DC_min)
+    for speed in range(0, 50, 1):
+        set_pwm_dc(Motors_PWM[motor], 0, speed)
+        time.sleep(0.1)
+    GPIO.output(Motors_Dir[motor], GPIO.LOW)
 
 # Clean up GPIO
 GPIO.cleanup()

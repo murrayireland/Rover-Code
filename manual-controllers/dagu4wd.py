@@ -23,13 +23,11 @@ GPIO.setmode(GPIO.BCM)
 # Disable warnings
 GPIO.setwarnings(False)
 
-# PWM pins on motor driver board are set to HIGH for locked antiphase
-# operation. Pins are allocated as follows
-Motor_Pins = {'BL': 18, 'FL': 17, 'BR': 23, 'FR': 22}
-
-# DIR pins on motor driver board are fed PWM signal by PWM controller.
-# PWM channels are allocated as follows
+# PWM channels on PWM driver board supply duty cycle in bits to DC driver board
 Motor_Channels = {'BL': 0, 'FL': 1, 'BR': 14, 'FR': 15}
+
+# DIR pins on motor driver board determine motor direction (sign magnitude)
+Motor_Pins = {'BL': 18, 'FL': 17, 'BR': 23, 'FR': 22}
 
 # Set motor directions
 Motor_Dirs = {'BL': -1, 'FL': -1, 'BR': 1, 'FR': 1}
@@ -38,7 +36,7 @@ Motor_Dirs = {'BL': -1, 'FL': -1, 'BR': 1, 'FR': 1}
 Servo_Channels = {'Arm': 4, 'Grasper': 5}
 
 # Set up PWM driver
-Motor_Freq = 50
+Motor_Freq = 500
 PWM = PD.PCA9685()
 PWM.set_pwm_freq(Motor_Freq)
 

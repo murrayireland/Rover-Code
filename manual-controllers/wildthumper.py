@@ -11,7 +11,7 @@ import time
 import Adafruit_PCA9685 as PD
 import RPi.GPIO as GPIO
 
-class WildThumper:
+class WildThumper(object):
 
     # Motor driver direction pins on RPi (BCM)
     # Drivers are numbered in increasing order back to front
@@ -38,12 +38,15 @@ class WildThumper:
     # PWM setup
     MOTOR_FREQ = 500
     SERVO_FREQ = 20
-    BITLENGTH = 4095
+    BIT_LENGTH = 4095
 
     # Rest time for motors when changing direction
     MOTOR_REST = 0.2
     
-    def __init__(self, num_wheels, battery_voltage, motor_voltage):
+    def __init__(self, num_wheels, battery_voltage, motor_voltage, debugging=0):
+
+        # Print stuff in debugging mode
+        self.debugging = debugging
 
         # Initialise GPIO
         GPIO.setmode(GPIO.BCM)
@@ -86,14 +89,14 @@ class WildThumper:
                            'BR': self.MD2_M1_CHL, 'FR': self.MD2_M2_CHL}
 
         # Initialise motor directions as forward
-        self.motor_dirs = {'BL': 1, 'FL': 1, 'BR': 1, 'FR': 1}
-        self.old_motor_dirs = self.motor_dirs
+        self.motor_dirs = {'BL': True, 'FL': True, 'BR': True, 'FR': True}
+        self.old_motor_dirs = {'BL': True, 'FL': True, 'BR': True, 'FR': True}
 
         # Initialise motor duty cycles
         self.motor_dcs = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
         
         # Servo PWM channels
-        self.dervo_chls = {'Arm': self.S1_CHL, 'Grabber': self.S2_CHL}
+        self.servo_chls = {'Arm': self.S1_CHL, 'Grabber': self.S2_CHL}
 
         # Set up PWM driver for servos
         self.servo = PD.PCA9685()
@@ -111,6 +114,13 @@ class WildThumper:
         self.motor_chls = {'BL': self.MD1_M1_CHL, 'ML': self.MD1_M2_CHL,
                            'FL': self.MD1_M2_CHL, 'BR': self.MD2_M1_CHL,
                            'MR': self.MD2_M2_CHL, 'FR': self.MD3_M2_CHL}
+
+    def set_speed(self, left, right):
+        """Set motor speeds"""
+
+        speeds = {'BL': left, 'FL': left, 'BR': right, 'FR': right}
+
+        self.set_motors(speeds, self.old_motor_dirs):
 
     def set_motors(self, speeds):
         """Set motor duty cycles, based on speed command in range [-1, 1]"""
@@ -133,17 +143,29 @@ class WildThumper:
             # Set direction change check to prevent the motors melting
             if dir_change == False:
                 dir_change = self.motor_dirs[motor] != self.old_motor_dirs[motor]
+
+        if self.debugging:
+            print dir_change
+            # print "Motor directionss:"
+            # print self.motor_dirs
+            # print "Motor duty cycles:"
+            # print self.motor_dcs
         
         # Cycle motors after checking for direction change
         for motor in self.motor_chls:
 
             # Stop motors briefly if direction has changed
             if dir_change == True:
+
+                if self.debugging:
+                    print "Change in direction"
                 
                 # Retain direction while stopping motors
                 GPIO.output(self.motor_pins[motor], self.old_motor_dirs[motor])
 
                 # Stop motors
+                if self.debugging:
+                    print "Motor {} DC = {} dir = {}".format(motor, 0, self.old_motor_dirs[motor])
                 self.motors.set_pwm(self.motor_chls[motor], 0, 0)
 
                 # Pause briefly
@@ -155,6 +177,8 @@ class WildThumper:
                 GPIO.output(self.motor_pins[motor], self.motor_dirs[motor])
 
                 # Set motor duty cycle
+                if self.debugging:
+                    print "Motor {} DC = {} dir = {}".format(motor, self.motor_dcs[motor], self.motor_dirs[motor])
                 self.motors.set_pwm(
                     self.motor_chls[motor],
                     0,
@@ -169,4 +193,7 @@ class WildThumper:
 
         GPIO.cleanup()
             
+    def test(self):
+
+        print "Just testing"
             

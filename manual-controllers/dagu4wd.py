@@ -14,7 +14,7 @@ from wildthumper import WildThumper
 import btcontrol
 
 # Initialise wild thumper control
-wt4 = WildThumper(4, 7.4, 7.2)
+wt4 = WildThumper(4, 7.4, 7.2, 1)
 
 # Initialise bluetooth controller
 joystick = btcontrol.Init()
@@ -24,7 +24,7 @@ stop_loop = False
 
 # Loop
 while joystick != 0 and stop_loop == False:
-    buttons, axes = btcontrol.GetControls(Joystick)
+    buttons, axes = btcontrol.GetControls(joystick)
 
     # Update motors
     wt4.update_motors(axes['L vertical'], axes['L horizontal'])

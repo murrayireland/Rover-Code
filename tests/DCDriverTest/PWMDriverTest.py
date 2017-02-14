@@ -25,22 +25,22 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # GPIO pin for direction control
-dir_pin = 22
+dir_pin = 17
 
 # PWM controller channel
-pwm_pin = 15
+pwm_pin = 14
 
 # Set pins as outputs
 GPIO.setup(dir_pin, GPIO.OUT)
 
 # Set direction
-GPIO.output(dir_pin, GPIO.HIGH)
+GPIO.output(dir_pin, GPIO.LOW)
 
 # Initialise PWM driver
 pwm = Adafruit_PCA9685.PCA9685()
 
 # Set PWM frequency (Hz)
-pwm.set_pwm_freq(50)
+pwm.set_pwm_freq(200)
 
 # Set PWM from duty cycle
 def set_pwm_dc(channel, on_dc, off_dc):
@@ -52,7 +52,14 @@ def set_pwm_dc(channel, on_dc, off_dc):
     pwm.set_pwm(channel, on_bits, off_bits)
 
 set_pwm_dc(pwm_pin, 0, 70)
-time.sleep(1)
+time.sleep(2)
+
+GPIO.output(dir_pin, GPIO.HIGH)
+
+set_pwm_dc(pwm_pin, 0, 70)
+time.sleep(2)
+
+set_pwm_dc(pwm_pin, 0, 0)
 
 # for speed in range(0, 100, 1):
 #     # print "Speed: {}".format(speed)

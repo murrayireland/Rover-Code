@@ -44,9 +44,9 @@ class WildThumper(object):
     MOTOR_REST = 0.2
 
     # Gains for controller
-    KCOLL = 1
-    KDIFF = 1
-    
+    KCOLL = -0.8
+    KDIFF = 0.8
+
     def __init__(self, num_wheels, battery_voltage, motor_voltage, debugging=0):
 
         # Print stuff in debugging mode
@@ -94,11 +94,10 @@ class WildThumper(object):
                            'BR': self.MD2_M1_CHL, 'FR': self.MD2_M2_CHL}
 
         # Initialise motor directions as forward
-        self.motor_dirs = {'BL': True, 'FL': True, 'BR': True, 'FR': True}
         self.old_motor_dirs = {'BL': True, 'FL': True, 'BR': True, 'FR': True}
 
-        # Initialise motor duty cycles
-        self.motor_dcs = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
+        # Set up empty dictionary for stopping motors
+        self.stop_dcs = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
         
         # Servo PWM channels
         self.servo_chls = {'Arm': self.S1_CHL, 'Grabber': self.S2_CHL}
@@ -117,8 +116,11 @@ class WildThumper(object):
         
         # Motor PWM channels
         self.motor_chls = {'BL': self.MD1_M1_CHL, 'ML': self.MD1_M2_CHL,
-                           'FL': self.MD1_M2_CHL, 'BR': self.MD2_M1_CHL,
+                           'FL': self.MD3_M2_CHL, 'BR': self.MD2_M1_CHL,
                            'MR': self.MD2_M2_CHL, 'FR': self.MD3_M2_CHL}
+
+        # Set up empty dictionary for stopping motors
+        self.stop_dcs = {'BL': 0, 'ML': 0, 'FL': 0, 'BR': 0, 'MR': 0, 'FR': 0}
 
     def update_motors(self, coll, diff):
         """Update motor speeds by calling set_motors method"""
@@ -126,6 +128,13 @@ class WildThumper(object):
         # Get speeds from controls
         lspeed = self.KCOLL*coll + self.KDIFF*diff
         rspeed = self.KCOLL*coll - self.KDIFF*diff
+
+        # Limit speeds
+        maxspeed = 1
+        lspeed = lspeed*(lspeed <= maxspeed and lspeed >= -maxspeed) \
+            + maxspeed*(lspeed > maxspeed) - maxspeed*(lspeed < -maxspeed)
+        rspeed = rspeed*(rspeed <= maxspeed and rspeed >= -maxspeed) \
+            + maxspeed*(rspeed > maxspeed) - maxspeed*(rspeed < -maxspeed)
 
         # Set speeds to motors
         speeds = {'BL': lspeed, 'FL': lspeed, 'BR': rspeed, 'FR': rspeed}
@@ -168,40 +177,34 @@ class WildThumper(object):
             # Set direction change check to prevent the motors melting
             if dir_change == False:
                 dir_change = motor_dirs[motor] != old_dirs[motor]
+
+        if dir_change == True:
+            motor_dcs = self.stop_dcs
+            active_dirs = old_dirs
+        else:
+            active_dirs = motor_dirs
         
         # Cycle motors after checking for direction change
         for motor in self.motor_chls:
-
-            # Stop motors briefly if direction has changed
-            if dir_change == True:
-
-                if self.debugging:
-                    print "Change in direction"
                 
-                # Retain direction while stopping motors
-                GPIO.output(self.motor_pins[motor], old_dirs[motor])
+            # Set motor direction
+            GPIO.output(self.motor_pins[motor], active_dirs[motor])
 
-                # Stop motors
-                if self.debugging:
-                    print "Motor {} DC = {} dir = {}".format(motor, 0, self.old_motor_dirs[motor])
-                self.motors.set_pwm(self.motor_chls[motor], 0, 0)
-
-                # Pause briefly
-                time.sleep(self.MOTOR_REST)
-
-            else:
-
-                # Set direction
-                GPIO.output(self.motor_pins[motor], motor_dirs[motor])
-
-                # Set motor duty cycle
-                if self.debugging:
-                    print "Motor {} DC = {} dir = {}".format(motor, self.motor_dcs[motor], self.motor_dirs[motor])
-                self.motors.set_pwm(
+            # Set motor duty cycle motors
+            self.motors.set_pwm(
                     self.motor_chls[motor],
                     0,
                     motor_dcs[motor]
                 )
+                
+        # Print motor duty cycles and directions
+        if self.debugging:
+            print "DCs: {}, Dirs: {}".format(motor_dcs,active_dirs)
+            
+        # Pause if stopping motors
+        if dir_change == True:
+            # Pause briefly
+            time.sleep(self.MOTOR_REST)
         
         # Save motor directions
         return motor_dirs
@@ -209,11 +212,15 @@ class WildThumper(object):
     def stop_motors(self):
         """Stop motors immediately"""
 
+        print("Stopping all motors")
+
         for motor in self.motor_chls:
             self.motors.set_pwm(self.motor_chls[motor], 0, 0)
 
     def cleanup(self):
         """Cleanup GPIO pins and PWMs"""
+
+        print("Cleaning up GPIO")
 
         GPIO.cleanup()
             

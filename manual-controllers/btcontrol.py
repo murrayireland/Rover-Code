@@ -15,8 +15,8 @@ import pygame
 def Init():
 
     pygame.init()
-    pygame.display.init()
-    pygame.display.set_mode((1, 1))
+    # pygame.display.init()
+    # pygame.display.set_mode((1, 1))
     pygame.joystick.init()
 
     # Number of joysticks available

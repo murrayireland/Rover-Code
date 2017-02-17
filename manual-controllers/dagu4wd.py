@@ -14,7 +14,7 @@ from wildthumper import WildThumper
 import btcontrol
 
 # Initialise wild thumper control
-wt4 = WildThumper(4, 7.4, 7.2, 1)
+wt4 = WildThumper(4, 7.4, 5, 0)
 
 # Initialise bluetooth controller
 joystick = btcontrol.Init()

@@ -32,8 +32,8 @@ class WildThumper(object):
     MD3_M2_CHL = 5
 
     # Servo PWM channels on PWM driver
-    S1_CHL = 8
-    S2_CHL = 9
+    S1_CHL = 4
+    S2_CHL = 5
 
     # PWM setup
     MOTOR_FREQ = 500
@@ -41,7 +41,10 @@ class WildThumper(object):
     BIT_LENGTH = 4095
 
     # Rest time for motors when changing direction
-    MOTOR_REST = 0.2
+    MOTOR_REST = 0.4
+
+    # Limit voltage gradient
+    MAX_RATE = 10
 
     # Gains for controller
     KCOLL = -0.8
@@ -86,12 +89,15 @@ class WildThumper(object):
         """Set pin and channel allocations for 4-wheel rover"""
 
         # Motor direction pins
-        self.motor_pins = {'BL': self.MD1_M1_PIN, 'FL': self.MD1_M2_PIN,
-                           'BR': self.MD2_M1_PIN, 'FR': self.MD2_M2_PIN}
+        self.motor_pins = {'BL': self.MD1_M1_PIN, 'BR': self.MD1_M2_PIN,
+                           'FL': self.MD2_M1_PIN, 'FR': self.MD2_M2_PIN}
         
         # Motor PWM channels
-        self.motor_chls = {'BL': self.MD1_M1_CHL, 'FL': self.MD1_M2_CHL,
-                           'BR': self.MD2_M1_CHL, 'FR': self.MD2_M2_CHL}
+        self.motor_chls = {'BL': self.MD1_M1_CHL, 'BR': self.MD1_M2_CHL,
+                           'FL': self.MD2_M1_CHL, 'FR': self.MD2_M2_CHL}
+
+        # Set motor directions
+        self.motor_dirs = {'BL': -1, 'BR': 1, 'FL': -1, 'FR': 1}
 
         # Initialise motor directions as forward
         self.old_motor_dirs = {'BL': True, 'FL': True, 'BR': True, 'FR': True}
@@ -169,7 +175,7 @@ class WildThumper(object):
 
             # Duty cycle as bit length
             motor_dcs[motor] = int(self.pwm_scale*self.BIT_LENGTH
-                                    *abs(speeds[motor]))
+                                   *abs(speeds[motor]))
 
             # Direction as boolean
             motor_dirs[motor] = speeds[motor] >= 0
@@ -186,9 +192,13 @@ class WildThumper(object):
         
         # Cycle motors after checking for direction change
         for motor in self.motor_chls:
-                
             # Set motor direction
-            GPIO.output(self.motor_pins[motor], active_dirs[motor])
+            if self.motor_dirs[motor] < 0:
+                dir = not(active_dirs[motor])
+            else:
+                dir = active_dirs[motor]
+            
+            GPIO.output(self.motor_pins[motor], dir)
 
             # Set motor duty cycle motors
             self.motors.set_pwm(

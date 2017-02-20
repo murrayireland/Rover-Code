@@ -10,6 +10,7 @@ __email__   = "murray@murrayire.land"
 import time
 import Adafruit_PCA9685 as PD
 import RPi.GPIO as GPIO
+from numpy import sign
 
 class WildThumper(object):
 
@@ -36,19 +37,28 @@ class WildThumper(object):
     S2_CHL = 5
 
     # PWM setup
-    MOTOR_FREQ = 500
-    SERVO_FREQ = 20
+    MOTOR_FREQ = 50
+    SERVO_FREQ = 50
     BIT_LENGTH = 4095
 
     # Rest time for motors when changing direction
     MOTOR_REST = 0.4
 
-    # Limit voltage gradient
-    MAX_RATE = 10
+    # Limit acceleration / voltage command
+    MAX_RATE = 1.5
 
     # Gains for controller
     KCOLL = -0.8
-    KDIFF = 0.8
+    KDIFF = 0.5
+
+    # Servo limits [0 1]
+    ARM_MAX = 0.12
+    ARM_MIN = 0.065
+    GRB_OPN = 0.072
+    GRB_CLS = 0.045
+
+    # Servo speed gains
+    ARM_GAIN = 0.02
 
     def __init__(self, num_wheels, battery_voltage, motor_voltage, debugging=0):
 
@@ -58,6 +68,11 @@ class WildThumper(object):
         # Initialise GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
+
+        # Initialise time
+        t0 = time.time()
+        self.time = t0
+        self.time_prev = t0
 
         # Initialise GPIO for different platforms
         self.num_wheels = num_wheels
@@ -104,6 +119,9 @@ class WildThumper(object):
 
         # Set up empty dictionary for stopping motors
         self.stop_dcs = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
+
+        # Speeds at previous steps
+        self.speeds_prev = {'L': 0, 'R': 0}
         
         # Servo PWM channels
         self.servo_chls = {'Arm': self.S1_CHL, 'Grabber': self.S2_CHL}
@@ -111,6 +129,30 @@ class WildThumper(object):
         # Set up PWM driver for servos
         self.servo = PD.PCA9685()
         self.servo.set_pwm_freq(self.SERVO_FREQ)
+
+        # Initialise servo positions
+        self.servo_pos = {'Arm': 0, 'Grabber': 0}
+
+        # Scale in given range
+        arm_pos = (self.ARM_MAX + self.ARM_MIN)/2
+        grb_pos = self.GRB_CLS
+
+        self.servo.set_pwm(
+            self.servo_chls['Arm'],
+            0, 
+            int(arm_pos*self.BIT_LENGTH)
+            )
+
+        self.servo.set_pwm(
+            self.servo_chls['Grabber'],
+            0, 
+            int(grb_pos*self.BIT_LENGTH)
+            )
+
+        time.sleep(0.5)
+
+        # Check stuff
+        # print "Motor freq: {}".format(self.motors.)
 
     def init_6wd(self):
         """Set pin and channel allocations for 6-wheel rover"""
@@ -135,12 +177,36 @@ class WildThumper(object):
         lspeed = self.KCOLL*coll + self.KDIFF*diff
         rspeed = self.KCOLL*coll - self.KDIFF*diff
 
+        # Get current time
+        t = self.time
+
+        # Get speeds and time at previous step
+        told = self.time_prev
+        lold = self.speeds_prev['L']
+        rold = self.speeds_prev['R']
+
         # Limit speeds
         maxspeed = 1
         lspeed = lspeed*(lspeed <= maxspeed and lspeed >= -maxspeed) \
             + maxspeed*(lspeed > maxspeed) - maxspeed*(lspeed < -maxspeed)
         rspeed = rspeed*(rspeed <= maxspeed and rspeed >= -maxspeed) \
             + maxspeed*(rspeed > maxspeed) - maxspeed*(rspeed < -maxspeed)
+
+        # Check acceleration
+        if t - told == 0:
+            ldot = 0
+            rdot = 0
+        else:
+            ldot = (lspeed - lold)/(t - told)
+            rdot = (rspeed - rold)/(t - told)
+
+        # Limit acceleration
+        if abs(ldot) > self.MAX_RATE:
+            ldot = sign(ldot)*self.MAX_RATE
+            lspeed = lold + (t - told)*ldot
+        if abs(rdot) > self.MAX_RATE:
+            rdot = sign(rdot)*self.MAX_RATE
+            rspeed = rold + (t - told)*rdot
 
         # Set speeds to motors
         speeds = {'BL': lspeed, 'FL': lspeed, 'BR': rspeed, 'FR': rspeed}
@@ -154,8 +220,13 @@ class WildThumper(object):
         # Set motors
         new_dirs = self.set_motors(speeds, old_dirs)
 
-        # Save directions for next step
+        # Save variables for next step
+        self.time_prev = t
+        self.speeds_prev = {'L': lspeed, 'R': rspeed}
         self.old_motor_dirs = new_dirs
+
+        # Update time
+        self.time = time.time()
 
     def set_motors(self, speeds, old_dirs):
 
@@ -178,10 +249,10 @@ class WildThumper(object):
                                    *abs(speeds[motor]))
 
             # Direction as boolean
-            motor_dirs[motor] = speeds[motor] >= 0
+            motor_dirs[motor] = bool(speeds[motor] >= 0)
 
             # Set direction change check to prevent the motors melting
-            if dir_change == False:
+            if dir_change == False and speeds[motor] > 0.01:
                 dir_change = motor_dirs[motor] != old_dirs[motor]
 
         if dir_change == True:
@@ -209,6 +280,7 @@ class WildThumper(object):
                 
         # Print motor duty cycles and directions
         if self.debugging:
+            # print "Speeds: {}".format(speeds)
             print "DCs: {}, Dirs: {}".format(motor_dcs,active_dirs)
             
         # Pause if stopping motors
@@ -226,6 +298,39 @@ class WildThumper(object):
 
         for motor in self.motor_chls:
             self.motors.set_pwm(self.motor_chls[motor], 0, 0)
+
+    def update_servos(self, arm_control, grb_control):
+        """Update servo positions"""
+
+        # Arm control sets velocity
+        arm_pos = self.servo_pos['Arm']
+        arm_pos = arm_pos - self.ARM_GAIN*arm_control
+
+        # Limit to range [-1 1]
+        arm_pos = arm_pos*(arm_pos >= -1 and arm_pos <= 1) - \
+                  (arm_pos < -1) + (arm_pos > 1)
+        self.servo_pos['Arm'] = arm_pos
+
+        # Scale in given range
+        arm_pos = (self.ARM_MAX - self.ARM_MIN)*arm_pos/2 + \
+                  (self.ARM_MAX + self.ARM_MIN)/2
+
+        # Update arm position
+        self.servo.set_pwm(
+            self.servo_chls['Arm'],
+            0,
+            int(arm_pos*self.BIT_LENGTH)
+            )
+
+        # Grabber is opened by button
+        grb_pos = self.GRB_OPN*grb_control + self.GRB_CLS*(grb_control == 0)
+        
+        # Update grabber position
+        self.servo.set_pwm(
+            self.servo_chls['Grabber'],
+            0,
+            int(grb_pos*self.BIT_LENGTH)
+            )
 
     def cleanup(self):
         """Cleanup GPIO pins and PWMs"""

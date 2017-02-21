@@ -17,15 +17,18 @@ import btcontrol
 record_video = "record"
 
 if record_video == "record":
+    print "Initialising video"
     import picamera
     import datetime
     d = datetime.datetime.now()
-    filename = "~/git/Rover-Code/media/{}-{}-{}_{}-{}.h264".format(d.year, d.month, d.day, d.hour, d.minute)
+    filename = "media/{}-{}-{}_{}-{}.h264".format(d.year, d.month, d.day, d.hour, d.minute)
     camera = picamera.PiCamera()
-    camera.resolution = (1200, 800)
+    camera.resolution = (1024, 768)
+    camera.framerate = 30
     camera.start_recording(filename)
 
 elif record_video == "stream":
+    print "Initialising video for stream"
     import picamera
     import socket
     camera = picamera.PiCamera()
@@ -44,9 +47,11 @@ elif record_video == "stream":
     camera.start_recording(connection, format="h264")
 
 # Initialise wild thumper control
+print "Initialising control algorithm"
 wt4 = WildThumper(4, 7.4, 7, 0)
 
 # Initialise bluetooth controller
+print "Initialising bluetooth controller"
 joystick = btcontrol.Init()
 
 # Initialise loop
@@ -55,7 +60,8 @@ stop_loop = False
 # Start time
 t0 = time.time()
 
-print "Running controller"
+if joystick != 0:
+    print "Running controller"
 
 # Loop
 while joystick != 0 and stop_loop == False:

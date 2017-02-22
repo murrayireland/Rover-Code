@@ -14,9 +14,9 @@ from wildthumper import WildThumper
 import btcontrol
 
 # Record or record video?
-record_video = "record"
+record_video = True
 
-if record_video == "record":
+if record_video:
     print "Initialising video"
     import picamera
     import datetime
@@ -26,25 +26,6 @@ if record_video == "record":
     camera.resolution = (1024, 768)
     camera.framerate = 30
     camera.start_recording(filename)
-
-elif record_video == "stream":
-    print "Initialising video for stream"
-    import picamera
-    import socket
-    camera = picamera.PiCamera()
-    camera.resolution = (640, 480)
-    camera.framerate = 5
-
-    # Server setup
-    server_socket = socket.socket()
-    # server_socket.close()
-    server_socket.bind(("0.0.0.0", 8000))
-    server_socket.listen(0)
-
-    # Accept a single connection and make a file out of it
-    print "Please connect to video stream"
-    connection = server_socket.accept()[0].makefile('wb')
-    camera.start_recording(connection, format="h264")
 
 # Initialise wild thumper control
 print "Initialising control algorithm"
@@ -90,9 +71,5 @@ tf = time.time() - t0
 print "Operational time: {:0.3f}s".format(tf)
 
 # Stop camera
-if record_video == "record":
+if record_video:
     camera.stop_recording()
-elif record_video == "stream":
-    camera.stop_recording()
-    connection.close()
-    server_socket.close()

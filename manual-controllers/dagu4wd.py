@@ -11,10 +11,10 @@ __date__    = "24/01/17"
 
 import time
 from wildthumper import WildThumper
-import btcontrol
+import bluetoothinput as bt
 
 # Record or record video?
-record_video = True
+record_video = False
 
 if record_video:
     print "Initialising video"
@@ -33,7 +33,7 @@ wt4 = WildThumper(4, 7.4, 7, 0)
 
 # Initialise bluetooth controller
 print "Initialising bluetooth controller"
-joystick = btcontrol.Init()
+joystick = bt.BluetoothInput()
 
 # Initialise loop
 stop_loop = False
@@ -41,35 +41,36 @@ stop_loop = False
 # Start time
 t0 = time.time()
 
-if joystick != 0:
+try:
     print "Running controller"
 
-# Loop
-while joystick != 0 and stop_loop == False:
-    buttons, axes = btcontrol.GetControls(joystick)
+    # Loop
+    while joystick != 0 and stop_loop == False:
+        buttons, axes, hats = joystick.get_controls()
 
-    # Update motors
-    wt4.update_motors(axes['L vertical'], axes['L horizontal'])
+        # Update motors
+        wt4.update_motors(axes['L vertical'], axes['L horizontal'])
 
-    # Update servos
-    wt4.update_servos(axes['R vertical'], buttons['R1'])
+        # Update servos
+        wt4.update_servos(axes['R vertical'], buttons['R1'])
 
-    # Stop loop if "X" button is pressed
-    if buttons['X'] == True:
-        stop_loop = True
+        # Stop loop if "X" button is pressed
+        if buttons['X'] == True:
+            stop_loop = True
 
-print "Controller terminated"
+    print "Controller terminated"
 
-# Stop motors
-wt4.stop_motors()
+    # Stop motors
+    wt4.stop_motors()
 
-# GPIO cleanup
-wt4.cleanup()
+    # GPIO cleanup
+    wt4.cleanup()
 
-# Finish time
-tf = time.time() - t0
-print "Operational time: {:0.3f}s".format(tf)
+finally:
+    # Finish time
+    tf = time.time() - t0
+    print "Operational time: {:0.3f}s".format(tf)
 
-# Stop camera
-if record_video:
-    camera.stop_recording()
+    # Stop camera
+    if record_video:
+        camera.stop_recording()

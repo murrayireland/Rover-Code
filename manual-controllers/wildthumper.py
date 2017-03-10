@@ -104,12 +104,10 @@ class WildThumper(object):
         """Set pin and channel allocations for 4-wheel rover"""
 
         # Motor direction pins
-        self.motor_pins = {'BL': self.MD1_M1_PIN, 'BR': self.MD1_M2_PIN,
-                           'FL': self.MD2_M1_PIN, 'FR': self.MD2_M2_PIN}
+        self.motor_pins = {'BL': 17, 'BR': 18, 'FL': 22, 'FR': 23}
         
         # Motor PWM channels
-        self.motor_chls = {'BL': self.MD1_M1_CHL, 'BR': self.MD1_M2_CHL,
-                           'FL': self.MD2_M1_CHL, 'FR': self.MD2_M2_CHL}
+        self.motor_chls = {'BL': 0, 'BR': 1, 'FL': 14, 'FR': 15}
 
         # Set motor directions
         self.motor_dirs = {'BL': -1, 'BR': 1, 'FL': -1, 'FR': 1}
@@ -158,17 +156,26 @@ class WildThumper(object):
         """Set pin and channel allocations for 6-wheel rover"""
 
         # Motor direction pins
-        self.motor_pins = {'BL': self.MD1_M1_PIN, 'ML': self.MD1_M2_PIN,
-                           'FL': self.MD3_M1_PIN, 'BR': self.MD2_M1_PIN,
-                           'MR': self.MD2_M2_PIN, 'FR': self.MD3_M2_PIN}
+        self.motor_pins = {'BL': 17, 'ML': 22, 'FL': 23,
+                           'BR': 18, 'MR': 27, 'FR': 24}
         
         # Motor PWM channels
-        self.motor_chls = {'BL': self.MD1_M1_CHL, 'ML': self.MD1_M2_CHL,
-                           'FL': self.MD3_M2_CHL, 'BR': self.MD2_M1_CHL,
-                           'MR': self.MD2_M2_CHL, 'FR': self.MD3_M2_CHL}
+        self.motor_chls = {'BL': 14, 'ML': 1, 'FL': 8,
+                           'BR': 15, 'MR': 0, 'FR': 9}
+
+        # Set motor directions
+        self.motor_dirs = {'BL': 1, 'ML': 1, 'FL': 1, 'BR': -1, 'MR': -1, 'FR': -1}
+
+        # Initialise motor directions as forward
+        self.old_motor_dirs = {'BL': True, 'ML': True, 'FL': True, 'BR': True, 'MR': True, 'FR': True}
 
         # Set up empty dictionary for stopping motors
         self.stop_dcs = {'BL': 0, 'ML': 0, 'FL': 0, 'BR': 0, 'MR': 0, 'FR': 0}
+
+        # Speeds at previous steps
+        self.speeds_prev = {'L': 0, 'R': 0}
+
+        time.sleep(0.5)
 
     def update_motors(self, coll, diff):
         """Update motor speeds by calling set_motors method"""

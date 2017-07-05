@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 """
-dagu4wd.py: Manual controller for Dagu Wild Thumper 4WD. Bluetooth
+dagu6wd.py: Manual controller for Dagu Wild Thumper 6WD. Bluetooth
 controller is used to provide remote control of rover.
 """
 
 __author__  = "Murray Ireland"
 __email__   = "murray@murrayire.land"
-__date__    = "24/01/17"
+__date__    = "10/03/17"
 
 import time
 from wildthumper import WildThumper
@@ -29,7 +29,7 @@ if record_video:
 
 # Initialise wild thumper control
 print "Initialising control algorithm"
-wt4 = WildThumper(4, 7.4, 7, 0)
+wt6 = WildThumper(6, 7.4, 7)
 
 # Initialise bluetooth controller
 print "Initialising bluetooth controller"
@@ -49,10 +49,7 @@ try:
         buttons, axes, hats = joystick.get_controls()
 
         # Update motors
-        wt4.update_motors(axes['L vertical'], axes['L horizontal'])
-
-        # Update servos
-        wt4.update_servos(axes['R vertical'], buttons['R1'])
+        wt6.update_motors(axes['L vertical'], axes['L horizontal'])
 
         # Stop loop if "X" button is pressed
         if buttons['X'] == True:
@@ -61,10 +58,10 @@ try:
     print "Controller terminated"
 
     # Stop motors
-    wt4.stop_motors()
+    wt6.stop_motors()
 
     # GPIO cleanup
-    wt4.cleanup()
+    wt6.cleanup()
 
 finally:
     # Finish time

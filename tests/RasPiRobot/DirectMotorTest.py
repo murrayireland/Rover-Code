@@ -31,7 +31,7 @@ GPIO.setup(RIGHT_2_PIN, GPIO.OUT)
 GPIO.output(RIGHT_2_PIN, right_dir)
 pwml = GPIO.PWM(LEFT_PWM_PIN, 500)
 pwml.start(5)
-pwmr = GPIO.PWM(RIGHT_PWM_PIN, 50)
+pwmr = GPIO.PWM(RIGHT_PWM_PIN, 500)
 pwmr.start(5)
 
 for i in range(5, 80, 5):

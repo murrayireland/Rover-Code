@@ -72,8 +72,8 @@ def JS2Motor(Vert, Hor, Turbo, OldLDir, OldRDir):
         LSpeed = 1
         RSpeed = 1
     else:
-        LSpeed = -0.8*Vert + 0.8*Hor
-        RSpeed = -0.8*Vert - 0.8*Hor
+        LSpeed = -0.8*Vert + 1*Hor
+        RSpeed = -0.8*Vert - 1*Hor
 
     # Set motor directions
     if LSpeed > 1:

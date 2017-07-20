@@ -18,7 +18,7 @@ stby = 12
 vB = 7.4
 
 # Motor voltage
-vM = 5
+vM = 7.2
 
 ## Setup
 

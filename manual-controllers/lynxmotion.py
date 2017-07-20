@@ -13,8 +13,9 @@ __date__    = "20/01/17"
 import time
 from adafruitDriver import AdafruitDriver
 import bluetoothinput as bt
+from sense_hat import SenseHat
 
-# Record or record video?
+# Record  video?
 record_video = False
 
 if record_video:
@@ -33,11 +34,27 @@ if record_video:
 
 # Initialise controller
 print "Initialising control algorithm"
-controller = AdafruitDriver(7.4, 7.2, 0)
+controller = AdafruitDriver(7.4, 7.2, 1)
 
 # Initialise bluetooth controller
 print "Initialising bluetooth controller"
 joystick = bt.BluetoothInput()
+
+# Initialise sensors
+sense = SenseHat()
+sense.set_rotation(270)
+
+e = (0, 0, 0)
+blnk = [
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e,
+    e,e,e,e,e,e,e,e
+]
 
 # Initialise loop
 stop_loop = False
@@ -51,6 +68,15 @@ try:
     # Loop
     while joystick != 0 and stop_loop == False:
         buttons, axes, hats = joystick.get_controls()
+
+        # Visualise controls
+        led_x = int(round(3*axes['L horizontal'] + 3))
+        led_y = int(round(3*axes['L vertical'] + 3))
+        sense.set_pixels(blnk)
+        sense.set_pixel(led_x, led_y, (255, 255, 255))
+        sense.set_pixel(led_x+1, led_y, (255, 255, 255))
+        sense.set_pixel(led_x, led_y+1, (255, 255, 255))
+        sense.set_pixel(led_x+1, led_y+1, (255, 255, 255))
 
         # Update motors
         controller.update_motors(axes['L vertical'], axes['L horizontal'])

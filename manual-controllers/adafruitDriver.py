@@ -31,8 +31,8 @@ class AdafruitDriver(object):
     MAX_RATE = 1.5
 
     # Gains for controller
-    K_COLL = 1
-    K_DIFF = 1
+    K_COLL = -0.8
+    K_DIFF = 0.5
 
     def __init__(self, battery_voltage, motor_voltage, debugging=0):
 
@@ -47,8 +47,8 @@ class AdafruitDriver(object):
 
         # Initialise time
         t0 = time.time()
-        self.time = t0
-        self.time_prev = t0
+        self.time = time.time()
+        self.motor_stop_time = time.time()
 
         # Set voltages
         self.BATTERY_VOLTAGE = battery_voltage
@@ -88,16 +88,16 @@ class AdafruitDriver(object):
             print "Setting Lynxmotion 4WD3 properties"
 
             # Pin allocation
-            self.PWM_LEFT = self.PWMB
-            self.PWM_RIGHT = self.PWMA
-            self.DIR_LEFT_1 = self.BIN1
-            self.DIR_LEFT_2 = self.BIN2
-            self.DIR_RIGHT_1 = self.AIN1
-            self.DIR_RIGHT_2 = self.AIN2
+            self.PWM_LEFT = self.PWMA
+            self.PWM_RIGHT = self.PWMB
+            self.DIR_LEFT_1 = self.AIN1
+            self.DIR_LEFT_2 = self.AIN2
+            self.DIR_RIGHT_1 = self.BIN1
+            self.DIR_RIGHT_2 = self.BIN2
 
             # Motor polarities (1: CW, 0: CCW)
             self.LEFT_POL = 1
-            self.RIGHT_POL = 1
+            self.RIGHT_POL = 0
             
             # Initialise motor directions at prev step (1: CW, 0: CCW)
             self.left_dir_prev = 1
@@ -117,25 +117,22 @@ class AdafruitDriver(object):
         # Get current time
         t = self.time
 
-        # Get speeds and time at previous step
-        t_old = self.time_prev
-
         # Set directions
-        self.set_direction(t, left_dir, right_dir)
+        self.set_direction(left_dir, right_dir)
 
         # Stop motors if direction has changed
-        self.motor_safety_stop(t)
+        self.motor_safety_stop()
 
         # Set speeds
         self.set_speed(left_speed, right_speed)
 
-    def set_direction(self, t, left_dir, right_dir):
+    def set_direction(self, left_dir, right_dir):
         """Set motor directions, 1 for forward, 0 for reverse"""
 
         # Update motor stop time if direction has changed
         if left_dir != self.left_dir_prev or \
            right_dir != self.right_dir_prev:
-            self.motor_stop_time = t
+            self.motor_stop_time = time.time()
 
         # Set left motor
         GPIO.output(self.DIR_LEFT_1, left_dir == self.LEFT_POL)
@@ -163,15 +160,16 @@ class AdafruitDriver(object):
                       1 * (right_speed > 1)
 
         # Update motor speeds
-        self.left_pwm.ChangeDutyCycle(left_speed * self.MOTOR_VOLTAGE / self.BATTERY_VOLTAGE)
-        self.right_pwm.ChangeDutyCycle(right_speed * self.MOTOR_VOLTAGE / self.BATTERY_VOLTAGE)
+        self.left_pwm.ChangeDutyCycle(100 * left_speed * self.MOTOR_VOLTAGE / self.BATTERY_VOLTAGE)
+        self.right_pwm.ChangeDutyCycle(100 * right_speed * self.MOTOR_VOLTAGE / self.BATTERY_VOLTAGE)
 
-    def motor_safety_stop(self, t):
+    def motor_safety_stop(self):
         """Stop motors briefly if direction is changed"""
 
         # Check if time is within tolerance of initial stop time
-        if t - self.motor_stop_time < self.MOTOR_REST:
+        if time.time() - self.motor_stop_time < self.MOTOR_REST:
             GPIO.output(self.STBY, 0)
+            #print "Stopping motor"
         else:
             GPIO.output(self.STBY, 1)
 

@@ -16,7 +16,7 @@ import bluetoothinput as bt
 from sense_hat import SenseHat
 
 # Record  video?
-record_video = False
+record_video = True
 
 if record_video:
     print "Initialising video"
@@ -24,7 +24,8 @@ if record_video:
     import datetime
     import os
     d = datetime.datetime.now()
-    if os.path.isdir("/media") == False:
+    print os.path.isdir("./media")
+    if os.path.isdir("./media") == False:
         os.mkdir("media")
     filename = "media/{}-{}-{}_{}-{}.h264".format(d.year, d.month, d.day, d.hour, d.minute)
     camera = picamera.PiCamera()

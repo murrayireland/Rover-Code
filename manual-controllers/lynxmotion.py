@@ -53,22 +53,39 @@ sense = SenseHat()
 sense.set_rotation(270)
 
 e = (0, 0, 0)
-blnk = [
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e,
-    e,e,e,e,e,e,e,e
-]
+white = (255, 255, 255)
+
+# LED set function
+def set_LEDs(coords, ):
+    # Blank LEDs
+    clrs = [
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e
+    ]
+
+    # Set coords to white
+    for coord in coords:
+        clrs[coord[0] + 8*coord[1]] = white
+    
+    # Update Sense HAT
+    sense.set_pixels(clrs)
+
+# Black box settings
+dt_samp = 0.1
+Data_Inputs = np.zeros((2,1))
+Data_Outputs = np.zeros((9,1))
 
 # Initialise loop
 stop_loop = False
 
 # Start time
-t0 = time.time()
+T0 = time.time()
 
 try:
     print "Running controller"
@@ -80,11 +97,7 @@ try:
         # Visualise controls
         led_x = int(round(3*axes['L horizontal'] + 3))
         led_y = int(round(3*axes['L vertical'] + 3))
-        sense.set_pixels(blnk)
-        sense.set_pixel(led_x, led_y, (255, 255, 255))
-        sense.set_pixel(led_x+1, led_y, (255, 255, 255))
-        sense.set_pixel(led_x, led_y+1, (255, 255, 255))
-        sense.set_pixel(led_x+1, led_y+1, (255, 255, 255))
+        set_LEDs( (led_x, led_y), (led_x+1, led_y), (led_x, led_y+1), (led_x+1, led_y+1) )
 
         # Update motors
         inputs = controller.update_motors(axes['L vertical'], axes['L horizontal'])

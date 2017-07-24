@@ -138,23 +138,23 @@ class AdafruitDriver(object):
         t = self.time
 
         # Set directions
-        self.set_direction(left_dir, right_dir)
+        left_dir_out, right_dir_out = self.set_direction(left_dir, right_dir)
 
         # Stop motors if direction has changed
-        self.motor_safety_stop()
+        motor_stop = self.motor_safety_stop()
 
         # Set speeds
-        self.set_speed(left_speed, right_speed)
+        left_voltage_out, right_voltage_out = self.set_speed(left_speed, right_speed)
 
         # Return motor voltages
-        voltage_left = left_speed * self.MOTOR_VOLTAGE
-        voltage_right = right_speed * self.MOTOR_VOLTAGE
-        if self.motor_stop:
+        voltage_left = left_dir_out * left_voltage_out
+        voltage_right = right_dir_out * right_voltage_out
+        if motor_stop:
             voltage_inputs = (0, 0)
         else:
             voltage_inputs = (voltage_left, voltage_right)
 
-        print voltage_inputs
+        return voltage_inputs
 
     def set_direction(self, left_dir, right_dir):
         """Set motor directions, 1 for forward, 0 for reverse"""
@@ -176,6 +176,19 @@ class AdafruitDriver(object):
         self.left_dir_prev = left_dir
         self.right_dir_prev = right_dir
 
+        # Return directions for output
+        if left_dir:
+            left_dir_out = 1
+        else:
+            left_dir_out = -1
+        
+        if right_dir:
+            right_dir_out = 1
+        else:
+            right_dir_out = -1
+
+        return ( left_dir_out, right_dir_out )
+
     def set_speed(self, left_speed, right_speed):
         """Set motor speed by PWM"""
 
@@ -193,17 +206,22 @@ class AdafruitDriver(object):
         self.left_pwm.ChangeDutyCycle(100 * left_speed * self.MOTOR_VOLTAGE / self.BATTERY_VOLTAGE)
         self.right_pwm.ChangeDutyCycle(100 * right_speed * self.MOTOR_VOLTAGE / self.BATTERY_VOLTAGE)
 
+        # Return voltages for output
+        return ( left_speed * self.MOTOR_VOLTAGE, right_speed * self.MOTOR_VOLTAGE )
+
     def motor_safety_stop(self):
         """Stop motors briefly if direction is changed"""
 
         # Check if time is within tolerance of initial stop time
         if time.time() - self.motor_stop_time < self.MOTOR_REST:
-            self.motor_stop = True
+            motor_stop = True
             GPIO.output(self.STBY, 0)
             #print "Stopping motor"
         else:
-            self.motor_stop = False
+            motor_stop = False
             GPIO.output(self.STBY, 1)
+
+        return motor_stop
 
     def cleanup(self):
         """Cleanup when controller is deactivated"""

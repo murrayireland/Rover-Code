@@ -141,3 +141,4 @@ $RECYCLE.BIN/
 # Videos
 
 *.h264
+.vscode/settings.json

@@ -16,7 +16,10 @@ import bluetoothinput as bt
 from sense_hat import SenseHat
 
 # Record  video?
-record_video = True
+record_video = False
+
+# Record data?
+record_data = True
 
 if record_video:
     print "Initialising video"
@@ -33,9 +36,13 @@ if record_video:
     camera.framerate = 30
     camera.start_recording(filename)
 
+if record_data:
+    print "Initialising black box"
+    import csv
+
 # Initialise controller
 print "Initialising control algorithm"
-controller = AdafruitDriver(7.4, 7.2, 1)
+controller = AdafruitDriver(7.4, 7.2, "Lynxmotion", 0)
 
 # Initialise bluetooth controller
 print "Initialising bluetooth controller"
@@ -80,7 +87,7 @@ try:
         sense.set_pixel(led_x+1, led_y+1, (255, 255, 255))
 
         # Update motors
-        controller.update_motors(axes['L vertical'], axes['L horizontal'])
+        inputs = controller.update_motors(axes['L vertical'], axes['L horizontal'])
 
         # Stop loop if "X" button is pressed
         if buttons['X'] == True:

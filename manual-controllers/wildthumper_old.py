@@ -14,16 +14,38 @@ from numpy import sign
 
 class WildThumper(object):
 
+    # Motor driver direction pins on RPi (BCM)
+    # Drivers are numbered in increasing order back to front
+    MD1_M1_PIN = 17
+    MD1_M2_PIN = 18
+    MD2_M1_PIN = 6
+    MD2_M2_PIN = 12
+    MD3_M1_PIN = 24
+    MD3_M2_PIN = 25
+
+    # Motor driver PWM channels on PWM driver
+    # Drivers are numbered in increasing order back to front
+    MD1_M1_CHL = 0
+    MD1_M2_CHL = 1
+    MD2_M1_CHL = 14
+    MD2_M2_CHL = 15
+    MD3_M1_CHL = 4
+    MD3_M2_CHL = 5
+
+    # Servo PWM channels on PWM driver
+    S1_CHL = 4
+    S2_CHL = 5
+
     # PWM setup
     MOTOR_FREQ = 50
     SERVO_FREQ = 50
     BIT_LENGTH = 4095
 
     # Rest time for motors when changing direction
-    MOTOR_REST = 0.4
+    MOTOR_REST = 1
 
     # Limit acceleration / voltage command
-    MAX_VRATE = 1.5
+    MAX_RATE = 1.5
 
     # Gains for controller
     KCOLL = -0.8
@@ -78,7 +100,6 @@ class WildThumper(object):
 
         # Scale pwm commands so motor voltage isn't exceeded
         self.motor_voltage = motor_voltage
-        self.battery_voltage = battery_voltage
         self.pwm_scale = float(motor_voltage)/float(battery_voltage)
 
     def init_4wd(self):
@@ -90,23 +111,20 @@ class WildThumper(object):
         # Motor PWM channels
         self.motor_chls = {'BL': 0, 'BR': 1, 'FL': 14, 'FR': 15}
 
-        # Set motor polarity
-        self.motor_pols = {'BL': 0, 'BR': 1, 'FL': 0, 'FR': 1}
+        # Set motor directions
+        self.motor_dirs = {'BL': -1, 'BR': 1, 'FL': -1, 'FR': 1}
 
         # Initialise motor directions as forward
-        self.old_motor_dirs = {'BL': 1, 'FL': 1, 'BR': 1, 'FR': 1}
+        self.old_motor_dirs = {'BL': True, 'FL': True, 'BR': True, 'FR': True}
 
         # Set up empty dictionary for stopping motors
         self.stop_dcs = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
-
-        # Initialise motor voltages for saving
-        self.motor_voltages = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
 
         # Speeds at previous steps
         self.speeds_prev = {'L': 0, 'R': 0}
         
         # Servo PWM channels
-        self.servo_chls = {'Arm': 4, 'Grabber': 5}
+        self.servo_chls = {'Arm': self.S1_CHL, 'Grabber': self.S2_CHL}
 
         # Set up PWM driver for servos
         self.servo = PD.PCA9685()
@@ -147,8 +165,8 @@ class WildThumper(object):
         self.motor_chls = {'BL': 14, 'ML': 1, 'FL': 8,
                            'BR': 15, 'MR': 0, 'FR': 9}
 
-        # Set motor polarity
-        self.motor_pols = {'BL': 1, 'ML': 1, 'FL': 1, 'BR': -1, 'MR': -1, 'FR': -1}
+        # Set motor directions
+        self.motor_dirs = {'BL': 1, 'ML': 1, 'FL': 1, 'BR': -1, 'MR': -1, 'FR': -1}
 
         # Initialise motor directions as forward
         self.old_motor_dirs = {'BL': True, 'ML': True, 'FL': True, 'BR': True, 'MR': True, 'FR': True}
@@ -191,12 +209,12 @@ class WildThumper(object):
             ldot = (lspeed - lold)/(t - told)
             rdot = (rspeed - rold)/(t - told)
 
-        # Limit voltage rate of change
-        if abs(ldot) > self.MAX_VRATE:
-            ldot = sign(ldot)*self.MAX_VRATE
+        # Limit acceleration
+        if abs(ldot) > self.MAX_RATE:
+            ldot = sign(ldot)*self.MAX_RATE
             lspeed = lold + (t - told)*ldot
-        if abs(rdot) > self.MAX_VRATE:
-            rdot = sign(rdot)*self.MAX_VRATE
+        if abs(rdot) > self.MAX_RATE:
+            rdot = sign(rdot)*self.MAX_RATE
             rspeed = rold + (t - told)*rdot
 
         # Set speeds to motors
@@ -205,71 +223,22 @@ class WildThumper(object):
             speeds['ML'] = lspeed
             speeds['MR'] = rspeed
 
-        # Set motor directions
-        motor_dirs_out = self.set_direction( speeds )
+        # Get previous motor directions
+        old_dirs = self.old_motor_dirs
 
-        # Stop motors if direction changes
-        motor_active = self.motor_safety_stop()
-
-        # Set motor speeds
-        self.set_speed( speeds, motor_active )
+        # Set motors
+        new_dirs = self.set_motors(speeds, old_dirs)
 
         # Save variables for next step
         self.time_prev = t
         self.speeds_prev = {'L': lspeed, 'R': rspeed}
+        self.old_motor_dirs = new_dirs
 
         # Update time
         self.time = time.time()
 
         # Return motor voltages
-        inputs = self.motor_voltages
-        # print inputs
         
-    def set_direction( self, speeds ):
-        """Set motor directions, trigger motor stop if direction has changed"""
-
-        stop_trigger = 0
-
-        for motor in speeds:
-            dir = float(speeds[motor]) >= 0
-            if dir != self.old_motor_dirs[motor]:
-                stop_trigger = 1
-                GPIO.output( self.motor_pins[motor], dir == self.motor_pols[motor] )
-                self.old_motor_dirs[motor] = dir
-        
-        if stop_trigger:
-            self.motor_stop_time = time.time()
-
-    def motor_safety_stop( self ):
-        """Stop motors if direction has changed"""
-
-        # Check if time is within tolerance of initial stop time
-        if time.time() - self.motor_stop_time < self.MOTOR_REST:
-            motor_active = 0
-        else:
-            motor_active = 1
-
-        return motor_active
-
-    def set_speed( self, speeds, motor_active ):
-        """Set motor duty cycles, based on speed command"""
-
-        motor_dcs = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
-
-        # Get absolute speeds
-        for motor in speeds:
-
-            # Motor speed as voltage (zero if motor is not active)
-            self.motor_voltages[motor] = speeds[motor] * self.motor_voltage * motor_active
-
-            # Duty cycle from absolute voltage
-            dc = int( self.BIT_LENGTH * abs(self.motor_voltages[motor]) / self.battery_voltage )
-            motor_dcs[motor] = dc
-
-            # Write duty cycle if motor is active, 0 if not
-            self.motors.set_pwm( self.motor_chls[motor], 0, dc )
-
-        # print motor_dcs
 
     def set_motors(self, speeds, old_dirs):
         """Set motor duty cycles, based on speed command in range [-1, 1]"""

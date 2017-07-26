@@ -23,7 +23,7 @@ from numpy import sign
 test = 1
 
 # Record data?
-record_data = False
+#record_data = True
 
 if record_data:
     print "Initialising black box"
@@ -90,7 +90,7 @@ voltages = {'BL': 0., 'BR': 0., 'FL': 0., 'FR': 0.}
 #sense.set_rotation(90)
 
 # Sensor data
-#def retrieve_sensor_data():
+def retrieve_sensor_data():
     # Accelerometers
     #acc = sense.get_accelerometer_raw()
 
@@ -103,10 +103,11 @@ voltages = {'BL': 0., 'BR': 0., 'FL': 0., 'FR': 0.}
     # Return results
     #return (acc['x'], acc['y'], acc['z'], gyro['x'], gyro['y'], gyro['z'], mag['x'], mag['y'], mag['z'])
 
+
 # Start time
 T0 = time.time()
 t = 0.
-tf = 4
+tf = 12
 dt_samp = 0.01
 t_samp = 0.
 
@@ -116,7 +117,7 @@ while t <= tf:
 
     # Tests
     for motor in motor_chls:
-        if t < 0:
+        if t < 4:
             voltages[motor] = 0
             dc = 0
         else:

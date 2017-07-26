@@ -20,13 +20,13 @@ class WildThumper(object):
     BIT_LENGTH = 4095
 
     # Rest time for motors when changing direction
-    MOTOR_REST = 0.4
+    MOTOR_REST = 0.2
 
     # Limit acceleration / voltage command
     MAX_VRATE = 1.5
 
     # Gains for controller
-    KCOLL = -0.8
+    KCOLL = -1
     KDIFF = 0.5
 
     # Servo limits [0 1]
@@ -49,6 +49,7 @@ class WildThumper(object):
 
         # Initialise time
         t0 = time.time()
+        self.time_init = t0
         self.time = t0
         self.time_prev = t0
         self.motor_stop_time = t0
@@ -74,7 +75,7 @@ class WildThumper(object):
             GPIO.setup(self.motor_pins[pin], GPIO.OUT)
 
             # Set pins to high
-            GPIO.output(self.motor_pins[pin], GPIO.HIGH)
+            GPIO.output(self.motor_pins[pin], self.motor_pols[pin])
 
         # Scale pwm commands so motor voltage isn't exceeded
         self.motor_voltage = motor_voltage
@@ -223,7 +224,7 @@ class WildThumper(object):
 
         # Return motor voltages
         inputs = self.motor_voltages
-        # print inputs
+        return inputs
         
     def set_direction( self, speeds ):
         """Set motor directions, trigger motor stop if direction has changed"""

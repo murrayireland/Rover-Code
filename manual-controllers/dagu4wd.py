@@ -19,6 +19,7 @@ record_video = False
 
 # Record data?
 record_data = True
+print_data = False
 
 if record_video or record_data:
     import os
@@ -42,6 +43,13 @@ if record_data:
     import numpy as np
     import io
     bbname = "dagu4wd_data/blackbox_{}-{}-{}_{}-{}.txt".format(d.year, d.month, d.day, d.hour, d.minute)
+
+    # Black box settings
+    dt_samp = 0.1
+    t_samp = 0
+    Data_Time = np.zeros(1)
+    Data_Inputs = np.zeros((4,1))
+    Data_Outputs = np.zeros((9,1))
 
 # Initialise wild thumper control
 print "Initialising control algorithm"
@@ -78,6 +86,20 @@ def set_LEDs(coords):
     # Update Sense HAT
     sense.set_pixels(clrs)
 
+# Sensor data
+def retrieve_sensor_data():
+    # Accelerometers
+    acc = sense.get_accelerometer_raw()
+
+    # Gyroscopes
+    gyro = sense.get_gyroscope_raw()
+
+    # Magnetometers
+    mag = sense.get_compass_raw()
+
+    # Return results
+    return (acc, gyro, mag)
+
 # Initialise loop
 stop_loop = False
 
@@ -100,10 +122,44 @@ try:
         set_LEDs( coords )
 
         # Update motors
-        wt4.update_motors(axes['L vertical'], axes['L horizontal'])
+        voltages = wt4.update_motors(axes['L vertical'], axes['L horizontal'])
 
         # Update servos
         wt4.update_servos(axes['R vertical'], buttons['R1'])
+
+        # Save data to arrays
+        t = time.time() - T0
+        if record_data:
+            if t >= t_samp:
+
+                # Save time
+                Data_Time = np.concatenate( ( Data_Time, [t] ), axis=1 )
+
+                # Save inputs
+                inputs = np.array( [[voltages['BL']],
+                                    [voltages['FL']],
+                                    [voltages['FR']],
+                                    [voltages['BR']]] )
+                Data_Inputs = np.concatenate( ( Data_Inputs, inputs ), axis=1 )
+
+                # Save outputs
+                acc, gyro, mag = retrieve_sensor_data()
+                outputs = np.array( [[acc['x']],
+                                     [acc['y']],
+                                     [acc['z']],
+                                     [gyro['x']],
+                                     [gyro['y']],
+                                     [gyro['z']],
+                                     [mag['x']],
+                                     [mag['y']],
+                                     [mag['z']]] )
+                Data_Outputs = np.concatenate( ( Data_Outputs, outputs ), axis=1 )
+
+                # Increment sample time
+                t_samp = t_samp + dt_samp
+                
+                if print_data:
+                    print "Time {:0.3f} s, Inputs = ({:0.3f}, {:0.3f}, {:0.3f}, {:0.3f})".format( t, float(inputs[0]), float(inputs[1]), float(inputs[2]), float(inputs[2]) )
 
         # Stop loop if "X" button is pressed
         if buttons['X'] == True:
@@ -125,3 +181,16 @@ finally:
     # Stop camera
     if record_video:
         camera.stop_recording()
+
+    # Save data
+    if record_data:
+        print "Saving data"
+        with io.FileIO( bbname, "w" ) as file:
+            writeobject = csv.writer( file, delimiter='\t' )
+            writeobject.writerow( Data_Time )
+            for row in Data_Inputs:
+                writeobject.writerow( row )
+            for row in Data_Outputs:
+                writeobject.writerow( row )
+
+# End

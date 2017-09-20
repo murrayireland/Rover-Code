@@ -26,13 +26,8 @@ class WildThumper(object):
     MAX_VRATE = 1.5
 
     # Gains for controller
-<<<<<<< HEAD
     KCOLL = -0.8
     KDIFF = 0.4
-=======
-    KCOLL = -1
-    KDIFF = 0.5
->>>>>>> 9917b1f097ec7d69ddbe5c28344550ca4b78b713
 
     # Servo limits [0 1]
     ARM_MAX = 0.12
@@ -146,21 +141,24 @@ class WildThumper(object):
         """Set pin and channel allocations for 6-wheel rover"""
 
         # Motor direction pins
-        self.motor_pins = {'BL': 17, 'ML': 22, 'FL': 23,
-                           'BR': 18, 'MR': 27, 'FR': 24}
+        self.motor_pins = {'BL': 17, 'ML': 22, 'FL': 6,
+                           'BR': 18, 'MR': 27, 'FR': 12}
         
         # Motor PWM channels
         self.motor_chls = {'BL': 14, 'ML': 1, 'FL': 8,
                            'BR': 15, 'MR': 0, 'FR': 9}
 
         # Set motor polarity
-        self.motor_pols = {'BL': 1, 'ML': 1, 'FL': 1, 'BR': -1, 'MR': -1, 'FR': -1}
+        self.motor_pols = {'BL': 1, 'ML': 1, 'FL': 1, 'BR': 0, 'MR': 0, 'FR': 0}
 
         # Initialise motor directions as forward
-        self.old_motor_dirs = {'BL': True, 'ML': True, 'FL': True, 'BR': True, 'MR': True, 'FR': True}
+        self.old_motor_dirs = {'BL': 1, 'ML': 1, 'FL': 1, 'BR': 1, 'MR': 1, 'FR': 1}
 
         # Set up empty dictionary for stopping motors
         self.stop_dcs = {'BL': 0, 'ML': 0, 'FL': 0, 'BR': 0, 'MR': 0, 'FR': 0}
+
+        # Initialise motor voltages for saving
+        self.motor_voltages = {'BL': 0, 'ML': 0, 'FL': 0, 'BR': 0, 'MR': 0, 'FR': 0}
 
         # Speeds at previous steps
         self.speeds_prev = {'L': 0, 'R': 0}

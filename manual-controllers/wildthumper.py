@@ -49,7 +49,7 @@ class WildThumper(object):
 
     # Gains for controller
     KCOLL = -0.8
-    KDIFF = 0.5
+    KDIFF = 0.4
 
     # Servo limits [0 1]
     ARM_MAX = 0.12

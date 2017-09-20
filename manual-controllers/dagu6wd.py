@@ -14,7 +14,7 @@ from wildthumper import WildThumper
 import bluetoothinput as bt
 
 # Record or record video?
-record_video = False
+record_video = True
 
 if record_video:
     print "Initialising video"

@@ -137,3 +137,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Videos
+
+*.h264
+.vscode/settings.json

@@ -15,16 +15,24 @@ from wildthumper import WildThumper
 wt4 = WildThumper(4, 7.4, 7.2, 1)
 
 # Set controls manually
-dirs = {'BL': False, 'FL': False, 'BR': False, 'FR': False}
+speeds = {'BL': 0, 'FL': 0.5, 'BR': 0, 'FR': 0.5}
 
-speeds = {'BL': -0.8, 'FL': -0.8, 'BR': -0.5, 'FR': -0.5}
-dirs = wt4.set_motors(speeds,dirs)
+motor_dirs_out = wt4.set_direction( speeds )
+wt4.set_speed( speeds, 1 )
 
 time.sleep(2)
 
-speeds = {'BL': 0.8, 'FL': 0.8, 'BR': -0.5, 'FR': -0.5}
-dirs = wt4.set_motors(speeds,dirs)
-dirs = wt4.set_motors(speeds,dirs)
+speeds = {'BL': 0, 'FL': 0, 'BR': 0, 'FR': 0}
+
+motor_dirs_out = wt4.set_direction( speeds )
+wt4.set_speed( speeds, 1 )
+
+time.sleep(1)
+
+speeds = {'BL': 0, 'FL': -0.5, 'BR': 0, 'FR': -0.5}
+
+motor_dirs_out = wt4.set_direction( speeds )
+wt4.set_speed( speeds, 1 )
 
 time.sleep(2)
 

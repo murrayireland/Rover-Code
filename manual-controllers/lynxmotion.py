@@ -10,146 +10,172 @@ __author__  = "Murray Ireland"
 __email__   = "murray@murrayire.land"
 __date__    = "20/01/17"
 
-import btcontrol
 import time
-import RPi.GPIO as GPIO
-import numpy as np
+from adafruitDriver import AdafruitDriver
+import bluetoothinput as bt
+from sense_hat import SenseHat
+
+# Record  video?
+record_video = False
+
+# Record data?
+record_data = True
+print_data = True
+
+if record_video or record_data:
+    import os
+    import datetime
+    d = datetime.datetime.now()
+    if os.path.isdir("./lynxmotion_data") == False:
+        os.mkdir("lynxmotion_data")
+
+
+if record_video:
+    print "Initialising video"
+    import picamera
+    vidname = "lynxmotion_data/video_{}-{}-{}_{}-{}.h264".format(d.year, d.month, d.day, d.hour, d.minute)
+    camera = picamera.PiCamera()
+    camera.resolution = (1024, 768)
+    camera.framerate = 30
+    camera.start_recording(vidname)
+
+if record_data:
+    print "Initialising black box"
+    import csv
+    import numpy as np
+    import io
+    bbname = "lynxmotion_data/blackbox_{}-{}-{}_{}-{}.txt".format(d.year, d.month, d.day, d.hour, d.minute)
+
+    # Black box settings
+    dt_samp = 0.1
+    t_samp = 0
+    Data_Time = np.zeros(1)
+    Data_Inputs = np.zeros((2,1))
+    Data_Outputs = np.zeros((9,1))
+
+# Initialise controller
+print "Initialising control algorithm"
+controller = AdafruitDriver(7.4, 7.2, "Lynxmotion", 0)
 
 # Initialise bluetooth controller
-joystick = btcontrol.Init()
+print "Initialising bluetooth controller"
+joystick = bt.BluetoothInput()
 
-# Power settings
-MotorVoltage = 7.2
-BatteryVoltage = 7.4
+# Initialise sensors
+sense = SenseHat()
+sense.set_rotation(270)
 
-# Motor delay to avoid bad things
-MotorDelay = 0.2
+e = (0, 0, 0)
+white = (255, 255, 255)
 
-# Pin allocation
-RIGHT_PWM_PIN = 14
-LEFT_PWM_PIN = 24
-LEFT_1_PIN = 17
-LEFT_2_PIN = 4
-RIGHT_1_PIN = 10
-RIGHT_2_PIN = 25
-LED_1_PIN = 8
-LED_2_PIN = 7
+# LED set function
+def set_LEDs(coords):
+    # Blank LEDs
+    clrs = [
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e,
+        e,e,e,e,e,e,e,e
+    ]
 
-# Initialise GPIO
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(LEFT_PWM_PIN, GPIO.OUT)
-GPIO.setup(LEFT_1_PIN, GPIO.OUT)
-GPIO.setup(LEFT_2_PIN, GPIO.OUT)
-GPIO.setup(RIGHT_PWM_PIN, GPIO.OUT)
-GPIO.setup(RIGHT_1_PIN, GPIO.OUT)
-GPIO.setup(RIGHT_2_PIN, GPIO.OUT)
-GPIO.setup(LED_1_PIN, GPIO.OUT)
-GPIO.setup(LED_2_PIN, GPIO.OUT)
-
-# Set initial values
-GPIO.output(LEFT_1_PIN, 0)
-GPIO.output(LEFT_2_PIN, 1)
-GPIO.output(RIGHT_1_PIN, 0)
-GPIO.output(RIGHT_2_PIN, 1)
-GPIO.output(LED_1_PIN, 1)
-GPIO.output(LED_2_PIN, 1)
-
-# Initialise PWMs
-LeftPWM = GPIO.PWM(LEFT_PWM_PIN, 500)
-RightPWM = GPIO.PWM(RIGHT_PWM_PIN, 500)
-LeftPWM.start(0)
-RightPWM.start(0)
-
-# Initialise directions
-OldLDir = 1
-OldRDir = 1
-
-# Set motor PWMs and direction from joystick commands
-def JS2Motor(Vert, Hor, Turbo, OldLDir, OldRDir):
-    # Set motor speeds in range [-1 1]
-    if Turbo == 1:
-        LSpeed = 1
-        RSpeed = 1
-    else:
-        LSpeed = -0.8*Vert + 0.8*Hor
-        RSpeed = -0.8*Vert - 0.8*Hor
-
-    # Set motor directions
-    if LSpeed > 1:
-        LSpeed = 1
-        LDir = 1
-    elif LSpeed >= 0:
-        LDir = 1
-    elif LSpeed < -1:
-        LSpeed = -1
-        LDir = -1
-    else:
-        LDir = -1
+    # Set coords to white
+    for coord in coords:
+        clrs[coord[0] + 8*coord[1]] = white
     
-    if RSpeed > 1:
-        RSpeed = 1
-        RDir = 1
-    elif RSpeed >= 0:
-        RDir = 1
-    elif RSpeed < -1:
-        RSpeed = -1
-        RDir = -1
-    else:
-        RDir = -1
-    
-    # If motors cmds have changed direction, stop them briefly
-    if OldLDir != LDir or OldRDir != RDir:
+    # Update Sense HAT
+    sense.set_pixels(clrs)
 
-        GPIO.output(LEFT_1_PIN, OldLDir != 1)
-        GPIO.output(LEFT_2_PIN, OldLDir == 1)
-        GPIO.output(RIGHT_1_PIN, OldRDir != 1)
-        GPIO.output(RIGHT_2_PIN, OldRDir == 1)
-    
-        # Set motor speeds to zero
-        LeftPWM.ChangeDutyCycle(0)
-        RightPWM.ChangeDutyCycle(0)
-        time.sleep(MotorDelay)
+# Sensor data
+def retrieve_sensor_data():
+    # Accelerometers
+    acc = sense.get_accelerometer_raw()
 
-    else:
-        
-        GPIO.output(LEFT_1_PIN, LDir != 1)
-        GPIO.output(LEFT_2_PIN, LDir == 1)
-        GPIO.output(RIGHT_1_PIN, RDir != 1)
-        GPIO.output(RIGHT_2_PIN, RDir == 1)
-    
-        # Set motor PWMs based on speeds and power ratio
-        scale = MotorVoltage/BatteryVoltage
-        LeftPWM.ChangeDutyCycle(LDir*LSpeed*100*scale)
-        RightPWM.ChangeDutyCycle(RDir*RSpeed*100*scale)
+    # Gyroscopes
+    gyro = sense.get_gyroscope_raw()
 
-    # Save directions for next loop
-    return LDir, RDir
+    # Magnetometers
+    mag = sense.get_compass_raw()
 
-# Print variable
-PrintStuff = False
+    # Return results
+    return (acc['x'], acc['y'], acc['z'], gyro['x'], gyro['y'], gyro['z'], mag['x'], mag['y'], mag['z'])
 
 # Initialise loop
-StopLoop = False
+stop_loop = False
 
-# Loop
-while joystick != 0 and StopLoop == False:
-    buttons, axes = btcontrol.GetControls( joystick )
+# Start time
+T0 = time.time()
+t = 0
 
-    OldLDir, OldRDir = JS2Motor(axes['L vertical'], axes['L horizontal'], buttons['R2'], OldLDir, OldRDir)
+try:
+    print "Running controller"
 
-    # Stop loop if "X" button is pressed
-    if buttons['X'] == True:
-        print("Stopping rover")
-        StopLoop = True
+    # Loop
+    while joystick != 0 and stop_loop == False:
+        buttons, axes, hats = joystick.get_controls()
 
-# Stop PWMs
-LeftPWM.stop()
-RightPWM.stop()
+        # Visualise controls
+        led_x = int(round(3*axes['L horizontal'] + 3))
+        led_y = int(round(3*axes['L vertical'] + 3))
+        coords = ( (led_x, led_y), (led_x+1, led_y), (led_x, led_y+1), (led_x+1, led_y+1) )
+        set_LEDs( coords )
 
-# Turn off LEDs
-GPIO.output(LED_1_PIN, 0)
-GPIO.output(LED_2_PIN, 0)
+        # Update motors
+        inputs = controller.update_motors(axes['L vertical'], axes['L horizontal'])
+        inputs_save = []
+        inputs_save.append( inputs )
+        inputs_save = np.transpose( [[x for xs in inputs_save for x in xs]] )
 
-# Release pins and clean up
-GPIO.cleanup()
+        # Retreive sensor data
+        outputs = retrieve_sensor_data()
+        outputs_save = []
+        outputs_save.append( outputs )
+        outputs_save = np.transpose( [[x for xs in outputs_save for x in xs]] )
+
+        # Save data to arrays
+        t = time.time() - T0
+        if record_data:
+            if t >= t_samp:
+                Data_Time = np.concatenate( ( Data_Time, [t] ), axis=1 )
+                Data_Inputs = np.concatenate( ( Data_Inputs, inputs_save ), axis=1 )
+                Data_Outputs = np.concatenate( ( Data_Outputs, outputs_save ), axis=1 )
+                t_samp = t_samp + dt_samp
+                
+                if print_data:
+                    print "Time {:0.3f} s, Inputs = ({:0.3f}, {:0.3f}), Acc = ({:0.3f}, {:0.3f}, {:0.3f})".format(t, inputs[0], inputs[1], outputs[0], outputs[1], outputs[2])
+
+
+        # Stop loop if "X" button is pressed
+        if buttons['X'] == True:
+            stop_loop = True
+
+    print "Controller terminated"
+
+    # GPIO cleanup
+    controller.cleanup()
+
+finally:
+    # Finish time
+    tfin = time.time() - T0
+    print "Operational time: {:0.3f}s".format(tfin)
+
+    # Stop camera
+    if record_video:
+        print "Stopping camera"
+        camera.stop_recording()
+
+    # Save data
+    if record_data:
+        print "Saving data"
+        with io.FileIO( bbname, "w" ) as file:
+            writeobject = csv.writer( file, delimiter='\t' )
+            writeobject.writerow( Data_Time )
+            for row in Data_Inputs:
+                writeobject.writerow( row )
+            for row in Data_Outputs:
+                writeobject.writerow( row )
+
+# End

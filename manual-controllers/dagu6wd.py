@@ -100,6 +100,10 @@ def retrieve_sensor_data():
     # Return results
     return (acc, gyro, mag)
 
+# Controller settings
+Kcoll = -1
+Kdiff = 0.4
+
 # Initialise loop
 stop_loop = False
 
@@ -112,17 +116,31 @@ try:
 
     # Loop
     while joystick != 0 and stop_loop == False:
-        # Get controls
+        # Get joystick controls
         buttons, axes, hats = joystick.get_controls()
 
+        # Get vehicle controls
+        if buttons['R1'] == True and buttons['L1'] == True:
+            coll = 1
+            diff = 0
+        elif buttons['R1'] == True:
+            coll = 0
+            diff = 1
+        elif buttons['L1'] == True:
+            coll = 0
+            diff = -1
+        else:
+            coll = Kcoll*axes['L vertical']
+            diff = Kdiff*axes['L horizontal']
+
         # Visualise controls on LED matrix
-        led_x = int( round( 3*axes['L horizontal'] + 3 ) )
-        led_y = int( round( 3*axes['L vertical'] + 3 ) )
+        led_x = int( round( 3*diff + 3 ) )
+        led_y = int( round( 3*coll + 3 ) )
         coords = ( (led_x, led_y), (led_x+1, led_y), (led_x, led_y+1), (led_x+1, led_y+1) )
         set_LEDs( coords )
 
         # Update motors
-        voltages = wt6.update_motors(axes['L vertical'], axes['L horizontal'])
+        voltages = wt6.update_motors(coll, diff)
 
         # Save data to arrays
         t = time.time() - T0

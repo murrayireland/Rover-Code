@@ -7,12 +7,15 @@ controller is used to provide remote control of rover.
 
 __author__  = "Murray Ireland"
 __email__   = "murray@murrayire.land"
-__date__    = "24/01/17"
+__date__    = "21/09/17"
 
 import time
 from wildthumper import WildThumper
 import bluetoothinput as bt
 from sense_hat import SenseHat
+
+# Allow turbo mode?
+Turbo = True
 
 # Record or record video?
 record_video = False
@@ -100,6 +103,10 @@ def retrieve_sensor_data():
     # Return results
     return (acc, gyro, mag)
 
+# Controller settings
+Kcoll = -0.6
+Kdiff = 0.3
+
 # Initialise loop
 stop_loop = False
 
@@ -112,20 +119,34 @@ try:
 
     # Loop
     while joystick != 0 and stop_loop == False:
-        # Get controls
+        # Get joystick controls
         buttons, axes, hats = joystick.get_controls()
 
+        # Get vehicle controls
+        if buttons['R1'] == True and buttons['L1'] == True and Turbo == True:
+            coll = 1
+            diff = 0
+        elif buttons['R1'] == True and Turbo == True:
+            coll = 0
+            diff = 1
+        elif buttons['L1'] == True and Turbo == True:
+            coll = 0
+            diff = -1
+        else:
+            coll = Kcoll*axes['L vertical']
+            diff = Kdiff*axes['L horizontal']
+
         # Visualise controls on LED matrix
-        led_x = int( round( 3*axes['L horizontal'] + 3 ) )
-        led_y = int( round( 3*axes['L vertical'] + 3 ) )
+        led_x = int( round( 3*diff + 3 ) )
+        led_y = int( round( 3*coll + 3 ) )
         coords = ( (led_x, led_y), (led_x+1, led_y), (led_x, led_y+1), (led_x+1, led_y+1) )
         set_LEDs( coords )
 
         # Update motors
-        voltages = wt4.update_motors(axes['L vertical'], axes['L horizontal'])
+        voltages = wt4.update_motors(coll, diff)
 
         # Update servos
-        wt4.update_servos(axes['R vertical'], buttons['R1'])
+        wt4.update_servos(axes['R vertical'], buttons['R stick'])
 
         # Save data to arrays
         t = time.time() - T0

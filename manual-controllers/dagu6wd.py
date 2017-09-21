@@ -7,12 +7,15 @@ controller is used to provide remote control of rover.
 
 __author__  = "Murray Ireland"
 __email__   = "murray@murrayire.land"
-__date__    = "10/03/17"
+__date__    = "21/09/17"
 
 import time
 from wildthumper import WildThumper
 import bluetoothinput as bt
 from sense_hat import SenseHat
+
+# Allow turbo mode?
+Turbo = True
 
 # Record or record video?
 record_video = False
@@ -101,8 +104,8 @@ def retrieve_sensor_data():
     return (acc, gyro, mag)
 
 # Controller settings
-Kcoll = -1
-Kdiff = 0.4
+Kcoll = -0.6
+Kdiff = 0.3
 
 # Initialise loop
 stop_loop = False
@@ -120,13 +123,13 @@ try:
         buttons, axes, hats = joystick.get_controls()
 
         # Get vehicle controls
-        if buttons['R1'] == True and buttons['L1'] == True:
+        if buttons['R1'] == True and buttons['L1'] == True and Turbo == True:
             coll = 1
             diff = 0
-        elif buttons['R1'] == True:
+        elif buttons['R1'] == True and Turbo == True:
             coll = 0
             diff = 1
-        elif buttons['L1'] == True:
+        elif buttons['L1'] == True and Turbo == True:
             coll = 0
             diff = -1
         else:
